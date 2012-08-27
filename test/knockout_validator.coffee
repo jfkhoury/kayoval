@@ -55,13 +55,19 @@ describe "ko.bindingHandlers.customValidation", ->
                 @element.setCustomValidity.getCall(0).should.have.been.calledWith("")
                 @element.setCustomValidity.getCall(0).should.have.been.calledBefore(@validGetter.getCall(0))
 
-            describe
+            describe "when `element.validity.valid` returns true", ->
+                beforeEach ->
+                    @validGetter.returns(true)
 
-            it "should call `setCustomValidity` with an empty string if `element.validity.valid` is true", ->
-                @validGetter.returns(true)
-                @element.setCustomValidity.should.have.been.calledWith("")
+                it "should call `setCustomValidity` with an empty string if `element.validity.valid` is true", ->
+                    @element.setCustomValidity.should.have.been.calledWith("")
 
-            it "should call `setCustomValidity` with INVALID MESSAGE if `element.validity.valid` is false", ->
-                @validGetter.returns(false)
-                @element.setCustomValidity.should.have.been.calledWith("INVALID MESSAGE")
+            describe "when `element.validity.valid` returns false", ->
+                beforeEach ->
+                    @validGetter.returns(false)
+
+                it "should call `setCustomValidity` with INVALID MESSAGE if `element.validity.valid` is false", ->
+                    @element.setCustomValidity.should.have.been.calledWith("INVALID MESSAGE")
                 
+
+
