@@ -45,6 +45,7 @@ describe "ko.bindingHandlers.customValidation", ->
 
         describe "when `valueObservable` does not have an `isValid` property", ->
             beforeEach ->
+                @valueObservable.validationMessage = "INVALID MESSAGE"
                 @element.validity = {}
                 @validGetter = sinon.stub()
                 Object.defineProperty(@element.validity, "valid", { get: @validGetter })
@@ -54,4 +55,13 @@ describe "ko.bindingHandlers.customValidation", ->
                 @element.setCustomValidity.getCall(0).should.have.been.calledWith("")
                 @element.setCustomValidity.getCall(0).should.have.been.calledBefore(@validGetter.getCall(0))
 
+            describe
+
+            it "should call `setCustomValidity` with an empty string if `element.validity.valid` is true", ->
+                @validGetter.returns(true)
+                @element.setCustomValidity.should.have.been.calledWith("")
+
+            it "should call `setCustomValidity` with INVALID MESSAGE if `element.validity.valid` is false", ->
+                @validGetter.returns(false)
+                @element.setCustomValidity.should.have.been.calledWith("INVALID MESSAGE")
                 
