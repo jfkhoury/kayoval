@@ -1,17 +1,17 @@
 {
-    "name": "HTML5KnockoutValidator",
-    "description": "",
+    "name": "kayoval",
+    "description": "Knockout plugin for customizing HTML5 validation",
     "version": "1.0.0",
     "author": "Joe Khoury <jfkhoury@gmail.com>",
     "license": "MIT",
     "repository": {
         "type": "git",
-        "url": "git://github.com/domenic/.git"
+        "url": "git://github.com/jfkhoury/kayoval.git"
     },
     "bugs": {
-        "url": "http://github.com/domenic//issues"
+        "url": "http://github.com/jfkhoury/kayoval/issues"
     },
-    "main": "lib/knockoutValidator.js",
+    "main": "lib/kayoval.js",
     "directories": {
         "lib": "lib"
     },

@@ -1,15 +1,17 @@
 "use strict"
 
 sinon = require("sinon")
-knockoutValidator = require("..")
+kayoval = require("..")
 
 beforeEach ->
     @ko =
         utils: unwrapObservable: (x) => x
         bindingHandlers: {}
         extenders: {}
-        computed: (y) => y
-    knockoutValidator(@ko)
+        computed: (y) =>
+            y._isComputedObservable = true
+            return y
+    kayoval(@ko)
 
 describe "ko.bindingHandlers.customValidation", ->
     beforeEach ->
@@ -17,10 +19,9 @@ describe "ko.bindingHandlers.customValidation", ->
 
     describe "when customValidation is enabled", ->
         beforeEach ->
-            @element = 
-                setCustomValidity: sinon.spy()
-        
             @valueAccessor.returns(true)
+
+            @element = setCustomValidity: sinon.spy()
 
             @valueObservable = {}
             @allBindingsAccessor = sinon.stub().returns(value: @valueObservable)
@@ -29,7 +30,7 @@ describe "ko.bindingHandlers.customValidation", ->
             beforeEach ->
                 @valueObservable.isValid = => true
 
-            it "should set customValidity to empty string", ->
+            it "should call `setCustomValidity` with the empty string", ->
                 @ko.bindingHandlers.customValidation.update(@element, @valueAccessor, @allBindingsAccessor)
 
                 @element.setCustomValidity.should.have.been.calledWith("")
@@ -39,7 +40,7 @@ describe "ko.bindingHandlers.customValidation", ->
                 @valueObservable.isValid = => false
                 @valueObservable.validationMessage = "INVALID MESSAGE"
 
-            it "should set customValidity to validationMessage", ->
+            it "should call `setCustomValidity` with the value of the observable's `validationMessage` property", ->
                 @ko.bindingHandlers.customValidation.update(@element, @valueAccessor, @allBindingsAccessor)
 
                 @element.setCustomValidity.should.have.been.calledWith("INVALID MESSAGE")
@@ -47,12 +48,15 @@ describe "ko.bindingHandlers.customValidation", ->
         describe "when `valueObservable` does not have an `isValid` property", ->
             beforeEach ->
                 @valueObservable.validationMessage = "INVALID MESSAGE"
+
                 @element.validity = {}
+
                 @validGetter = sinon.stub()
                 Object.defineProperty(@element.validity, "valid", { get: @validGetter })
+
                 @ko.bindingHandlers.customValidation.update(@element, @valueAccessor, @allBindingsAccessor)
 
-            it "should call `setCustomValidity` with an empty string before getting the `valid` property", ->
+            it "should call `setCustomValidity` with the empty string before getting the `valid` property", ->
                 @element.setCustomValidity.getCall(0).should.have.been.calledWith("")
                 @element.setCustomValidity.getCall(0).should.have.been.calledBefore(@validGetter.getCall(0))
 
@@ -60,14 +64,14 @@ describe "ko.bindingHandlers.customValidation", ->
                 beforeEach ->
                     @validGetter.returns(true)
 
-                it "should call `setCustomValidity` with an empty string if `element.validity.valid` is true", ->
+                it "should call `setCustomValidity` with the empty string", ->
                     @element.setCustomValidity.should.have.been.calledWith("")
 
             describe "when `element.validity.valid` returns false", ->
                 beforeEach ->
                     @validGetter.returns(false)
 
-                it "should call `setCustomValidity` with INVALID MESSAGE if `element.validity.valid` is false", ->
+                it "should call `setCustomValidity` with the value of the observable's `validationMessage` property", ->
                     @element.setCustomValidity.should.have.been.calledWith("INVALID MESSAGE")
 
 
@@ -76,27 +80,25 @@ describe "ko.extenders.customValidation", ->
         @target = sinon.stub()
         @params = message: "VALIDATION MESSAGE"
         
-
-    describe "when params.mustMatch exists", ->
+    describe "when `params.mustMatch` exists", ->
         beforeEach ->
-            @target.returns("MUST MATCH VALUE")
             @params.mustMatch = sinon.stub()
             @ko.extenders.customValidation(@target, @params)
 
-        it "should set the `isValid` computed property on target", ->
-            @target.should.have.property("isValid")
-        
-        it "should set the validation message on the target", ->
-            @target.should.have.property("validationMessage")
-            @target.validationMessage.should.equal("VALIDATION MESSAGE")
+        it "should set the `validationMessage` property on the target", ->
+            @target.should.have.property("validationMessage").that.equals("VALIDATION MESSAGE")
 
-        describe "when the target's value is undefined and other observable's value is empty string", ->
+        it "should set the `isValid` property on target to a computed observable", ->
+            @target.should.have.property("isValid")
+            @target.isValid.should.have.property("_isComputedObservable")
+        
+        describe "when the target's value is `undefined` and other observable's value is the empty string", ->
             beforeEach ->
                 @target.returns(undefined)
                 @params.mustMatch.returns("")
 
             it "isValid should return true", ->
-                @target.isValid().should.equal(true)
+                @target.isValid().should.be.true
 
         describe "when the target's value matches the other observable's value", ->
             beforeEach ->
@@ -104,7 +106,7 @@ describe "ko.extenders.customValidation", ->
                 @params.mustMatch.returns("OBSERVABLE MATCH")
 
             it "isValid should return true", ->
-                @target.isValid().should.equal(true)
+                @target.isValid().should.be.true
 
         describe "when the target's value does not match the other observable's value", ->
             beforeEach ->
@@ -112,13 +114,15 @@ describe "ko.extenders.customValidation", ->
                 @params.mustMatch.returns("OBSERVABLE MATCH")
 
             it "isValid should return false", ->
-                @target.isValid().should.equal(false)
+                @target.isValid().should.be.false
 
-    describe "when params.mustMatch does not exists", ->
+    describe "when params.mustMatch does not exist", ->
         beforeEach ->
-            @target.returns("MUST MATCH VALUE")
+            @target.returns("TARGET VALUE")
             @ko.extenders.customValidation(@target, @params)
 
-        it "should set the validation message on the target", ->
-            @target.should.have.property("validationMessage")
-            @target.validationMessage.should.equal("VALIDATION MESSAGE")
+        it "should set the `validationMessage` property on the target", ->
+            @target.should.have.property("validationMessage").that.equals("VALIDATION MESSAGE")
+
+        it "should not set the `isValid` property on the target", ->
+            @target.should.not.have.property("isValid")
