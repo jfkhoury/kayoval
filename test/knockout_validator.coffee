@@ -8,6 +8,7 @@ beforeEach ->
         utils: unwrapObservable: (x) => x
         bindingHandlers: {}
         extenders: {}
+        computed: (y) => y
     knockoutValidator(@ko)
 
 describe "ko.bindingHandlers.customValidation", ->
@@ -68,6 +69,56 @@ describe "ko.bindingHandlers.customValidation", ->
 
                 it "should call `setCustomValidity` with INVALID MESSAGE if `element.validity.valid` is false", ->
                     @element.setCustomValidity.should.have.been.calledWith("INVALID MESSAGE")
-                
 
 
+describe "ko.extenders.customValidation", ->
+    beforeEach ->
+        @target = sinon.stub()
+        @params = message: "VALIDATION MESSAGE"
+        
+
+    describe "when params.mustMatch exists", ->
+        beforeEach ->
+            @target.returns("MUST MATCH VALUE")
+            @params.mustMatch = sinon.stub()
+            @ko.extenders.customValidation(@target, @params)
+
+        it "should set the `isValid` computed property on target", ->
+            @target.should.have.property("isValid")
+        
+        it "should set the validation message on the target", ->
+            @target.should.have.property("validationMessage")
+            @target.validationMessage.should.equal("VALIDATION MESSAGE")
+
+        describe "when the target's value is undefined and other observable's value is empty string", ->
+            beforeEach ->
+                @target.returns(undefined)
+                @params.mustMatch.returns("")
+
+            it "isValid should return true", ->
+                @target.isValid().should.equal(true)
+
+        describe "when the target's value matches the other observable's value", ->
+            beforeEach ->
+                @target.returns("OBSERVABLE MATCH")
+                @params.mustMatch.returns("OBSERVABLE MATCH")
+
+            it "isValid should return true", ->
+                @target.isValid().should.equal(true)
+
+        describe "when the target's value does not match the other observable's value", ->
+            beforeEach ->
+                @target.returns("OBSERVABLE DOESN'T MATCH")
+                @params.mustMatch.returns("OBSERVABLE MATCH")
+
+            it "isValid should return false", ->
+                @target.isValid().should.equal(false)
+
+    describe "when params.mustMatch does not exists", ->
+        beforeEach ->
+            @target.returns("MUST MATCH VALUE")
+            @ko.extenders.customValidation(@target, @params)
+
+        it "should set the validation message on the target", ->
+            @target.should.have.property("validationMessage")
+            @target.validationMessage.should.equal("VALIDATION MESSAGE")
